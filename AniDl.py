@@ -11,7 +11,7 @@ except:
     API_KEY = None
 
 if not API_KEY or API_KEY == "":
-    print("Enter Your TechZ Api Key (Get From https://t.me/TechZApiBot) ")
+    print("Your TechZ Api Key (Get From https://telegram.me/TechZApiBot) ")
     API_KEY = input("Enter Your TechZ Api Key: ")
     with open("key.txt", "w") as f:
         f.write(API_KEY)

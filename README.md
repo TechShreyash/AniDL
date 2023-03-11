@@ -11,7 +11,7 @@
 pip install -U -r requirements.txt
 ```
 
-- Get Your TechZApi From https://t.me/TechZApiBot
+- Get Your TechZApi From https://telegram.me/TechZApiBot
 
 - Start AniDL
 ```
