@@ -29,4 +29,4 @@ python3 AniDL.py
 
 ## Video Tutorial
 
-<video src="https://raw.githubusercontent.com/TechShreyash/TechShreyash/main/AniDL%20Tutorial.mp4"></video>
+https://user-images.githubusercontent.com/82265247/224470012-1e6e551b-79d1-4c6f-88d9-d60e834a5469.mp4
