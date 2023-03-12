@@ -194,7 +194,11 @@ status = {}
 
 async def download(session, name, url):
     async with session.get(url) as response:
-        total = response.content_length / 1024
+        if response.content_length:
+            total = response.content_length / 1024
+        else:
+            total = 1
+
         done = 0
         async with aiofiles.open(name, "wb") as f:
             async for data in response.content.iter_chunked(1024):
@@ -222,7 +226,7 @@ async def progress():
 
         for k, v in sorted(status.items(), key=lambda x: x[0]):
             file = k.split("/")[-1]
-            percent = f"v %" if v < 100 else "Completed"
+            percent = f"{v} %" if v < 100 else "Completed"
 
             if x == 0:
                 text += "File Name".center(len(file)) + " : Progress\n\n"
