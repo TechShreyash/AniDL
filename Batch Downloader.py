@@ -192,19 +192,20 @@ print("\n", "=" * 50, "\n\n>> Batch Download Started...\n", sep="")
 status = {}
 
 
-async def download(session, name, url):
-    async with session.get(url) as response:
-        if response.content_length:
-            total = response.content_length / 1024
-        else:
-            total = 1
+async def download(name, url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.content_length:
+                total = response.content_length / 1024
+            else:
+                total = 1
 
-        done = 0
-        async with aiofiles.open(name, "wb") as f:
-            async for data in response.content.iter_chunked(1024):
-                status[name] = round(done / total * 100, 2)
-                done += 1
-                await f.write(data)
+            done = 0
+            async with aiofiles.open(name, "wb") as f:
+                async for data in response.content.iter_chunked(1024):
+                    status[name] = round(done / total * 100, 2)
+                    done += 1
+                    await f.write(data)
 
 
 def clear_line(n=1):
@@ -244,15 +245,13 @@ async def progress():
 async def main():
     global pos
     tasks = [progress()]
-    session = aiohttp.ClientSession()
 
     for i in download_links:
-        task = asyncio.create_task(download(session, i[0], i[1]))
+        task = asyncio.create_task(download(i[0], i[1]))
         tasks.append(task)
         pos += 1
 
     await asyncio.gather(*tasks)
-    await session.close()
 
 
 loop = asyncio.get_event_loop()
