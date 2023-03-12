@@ -23,3 +23,32 @@ python3 AniDL.py
 ## Video Tutorial
 
 https://user-images.githubusercontent.com/82265247/224470012-1e6e551b-79d1-4c6f-88d9-d60e834a5469.mp4
+
+<hr>
+
+## ⛩ AniDL Now Supports Batch Anime Downloading
+
+## 💠 Updates
+
+- Batch Downloader Support
+- Increased Downloading Speed
+- Parallel Downloading
+
+## 🔰 How To Download
+
+- Run Batch Downloader.py
+- Enter ApiKey And Anime Name
+
+- Enter Episode No. To Download Single Anime
+- Enter Episode Range, Like 2-7 To Download From Episode 2 To 7
+- Enter * To Download All Available Episodes
+
+- Wait For Download To Complete All Episodes Will Be Saved In A Folder Named With The Anime
+
+<hr>
+
+## Powered By TechZApi 
+
+https://user-images.githubusercontent.com/82265247/224524465-c9580bc8-dcdd-43ae-832e-6a1667cbcd2f.mp4
+
+For Details Watch The Above Video...
