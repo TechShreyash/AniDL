@@ -11,13 +11,6 @@
 pip install -U -r requirements.txt
 ```
 
-- Or Just Run The setup.py file
-```
-python setup.py
-Or
-python3 setup.py
-```
-
 - Get Your TechZApi From https://telegram.me/TechZApiBot
 
 - Start AniDL
