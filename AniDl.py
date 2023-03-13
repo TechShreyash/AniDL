@@ -1,6 +1,9 @@
-from pySmartDL import SmartDL
-from TechZApi import TechZApi
 import os
+import asyncio
+import aiofiles
+import aiohttp
+from TechZApi import TechZApi
+import sys
 
 
 # Getting TechZApi Key
@@ -75,8 +78,17 @@ for i in episodes:
 
 while True:
     try:
-        select = int(input("\nEnter Your Choice (1,2,3...): "))
-        episode = episodes[select - 1]
+        ep_range = input(
+            "\nEnter The Episodes You Want To Download (Ex 2, 3-8) || Enter * To Download All Episodes : "
+        )
+        if ep_range == "*":
+            break
+        if "-" not in ep_range:
+            episodes = [episodes[int(ep_range) - 1]]
+            break
+
+        x, y = ep_range.split("-")
+        episodes = episodes[(int(x) - 1) : int(y)]
         break
     except KeyboardInterrupt:
         print(">> Exiting...")
@@ -85,23 +97,22 @@ while True:
         print(">> Invalid Choice")
         continue
 
-# Episode Links
 
+# Audio
 
-links = TechZApi.gogo_episode(episode).get("DL")
-if links.get("SUB"):
-    print("1. SUB")
-if links.get("DUB"):
-    print("2. DUB")
+print("\n", "=" * 50, "\n\n>> Select Audio", sep="")
+
+print("1. SUB")
+print("2. DUB")
 
 while True:
     try:
         select = int(input("Enter Your Choice (1,2): "))
         if select == 1:
-            link = links.get("SUB")
+            aud = "SUB"
             break
         elif select == 2:
-            link = links.get("DUB")
+            aud = "DUB"
             break
         else:
             print(">> Invalid Choice")
@@ -113,17 +124,28 @@ while True:
         print(">> Invalid Choice")
         continue
 
+
+# Quality
+
 print("\n", "=" * 50, "\n\n>> Select Quality", sep="")
 
-pos = 1
-for q in link.keys():
-    print(f"{pos}. {q}")
-    pos += 1
+print("1. 360p")
+print("2. 480p")
+print("3. 720p")
+print("4. 1080p")
 
 while True:
     try:
         select = int(input("Enter Your Choice (1,2,3...): "))
-        quality = list(link.keys())[select - 1]
+
+        if select == 1:
+            quality = "360"
+        elif select == 2:
+            quality = "480"
+        elif select == 3:
+            quality = "720"
+        elif select == 4:
+            quality = "1080"
         break
     except KeyboardInterrupt:
         print(">> Exiting...")
@@ -132,41 +154,120 @@ while True:
         print(">> Invalid Choice")
         continue
 
-download_link = link.get(quality)
 
-print("\n", "=" * 50, "\n\n>> Starting Download...\n", sep="")
+# Getting Links
 
-dest = "./Downloads/"
-path = (
-    "./Downloads/"
-    + title
-    + "/"
-    + episode.replace("-", " ").title()
-    + " - "
-    + quality
-    + "p.mp4"
-)
+print("\n", "=" * 50, "\n\n>> Getting Download Urls...\n", sep="")
+
+
 if not os.path.exists("./Downloads/"):
     os.mkdir("./Downloads")
 if not os.path.exists("./Downloads/" + title):
     os.mkdir("./Downloads/" + title)
 
-for i in range(3):
+download_links = []
+
+for i in episodes:
     try:
-        obj = SmartDL(download_link, dest)
-        obj.start()
-        break
+        url = TechZApi.gogo_episode(i).get("DL").get(aud).get(quality)
+        path = (
+            "./Downloads/"
+            + title
+            + "/"
+            + i.replace("-", " ").title()
+            + " - "
+            + quality
+            + "p.mp4"
+        )
+        download_links.append((path, url))
+        print(">> Got Download Link Of: ", i)
     except Exception as e:
-        if "Destination path" in str(e):
-            dest = str(e).split("'")[1]
-            os.rename(dest, path)
-            break
-        print(">> Error: ", e)
-        print("\n>> Retrying...")
+        print(">> Failed To Get Download Link Of: ", i)
         continue
 
-print("\n", "=" * 50, "\n\n>> Downloaded Successfully")
-os.rename(obj.get_dest(), path)
-print(">> File Path: ", path)
+# Downloader
 
-input("Press Enter To Exit...")
+print("\n", "=" * 50, "\n\n>> Batch Download Started...\n", sep="")
+
+status = {}
+
+
+async def download(name, url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url) as response:
+            if response.content_length:
+                total = response.content_length / 1024
+            else:
+                total = 1
+
+            done = 0
+            async with aiofiles.open(name, "wb") as f:
+                async for data in response.content.iter_chunked(1024):
+                    status[name] = round(done / total * 100, 2)
+                    done += 1
+                    await f.write(data)
+
+
+def clear_line(n=1):
+    LINE_UP = "\033[1A"
+    LINE_CLEAR = "\x1b[2K"
+    for i in range(n):
+        print(LINE_UP, end=LINE_CLEAR)
+
+
+async def progress():
+    while True:
+
+        text = (
+            "=" * 50
+            + f"\n\n>> AniDL || Downloading {title} {aud} {quality}p : Episode {ep_range}\n\n"
+        )
+        n = 2
+        x = 0
+        is_all_completed = True
+
+        for k, v in sorted(status.items(), key=lambda x: x[0]):
+            file = k.split("/")[-1]
+            percent = f"{v} %" if v < 100 else "Completed"
+
+            if percent != "Completed":
+                is_all_completed = False
+
+            if x == 0:
+                text += "File Name".center(len(file)) + " : Progress\n\n"
+                n += 2
+                x = 1
+
+            text += f"{file} : {percent}\n"
+            n += 1
+
+        clear_line(n + 3)
+        print(text)
+
+        if is_all_completed and status != {}:
+            print(
+                "=" * 50
+                + f"\n\n>> AniDL || Downloaded Completed {title} {aud} {quality}p : Episode {ep_range}\n\n"
+            )
+            return
+        await asyncio.sleep(5)
+
+
+async def main():
+    global pos
+    tasks = [progress()]
+
+    for i in download_links:
+        task = asyncio.create_task(download(i[0], i[1]))
+        tasks.append(task)
+        pos += 1
+
+    await asyncio.gather(*tasks)
+
+
+loop = asyncio.get_event_loop()
+try:
+    loop.run_until_complete(main())
+    loop.run_until_complete(loop.shutdown_asyncgens())
+finally:
+    loop.close()

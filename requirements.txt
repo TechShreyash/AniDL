@@ -1,4 +1,3 @@
 requests
-pySmartDL
 aiohttp
 aiofiles
