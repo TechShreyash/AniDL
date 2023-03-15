@@ -139,13 +139,13 @@ while True:
         select = int(input("Enter Your Choice (1,2,3...): "))
 
         if select == 1:
-            quality = "360"
+            quality = "360p"
         elif select == 2:
-            quality = "480"
+            quality = "480p"
         elif select == 3:
-            quality = "720"
+            quality = "720p"
         elif select == 4:
-            quality = "1080"
+            quality = "1080p"
         break
     except KeyboardInterrupt:
         print(">> Exiting...")
