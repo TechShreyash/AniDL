@@ -1,4 +1,5 @@
 import asyncio, aiohttp, os
+from Utils.File import convertFilePath
 from Utils.TechZApi import TechZApi
 from Utils.Downloader import startM3U8Download, resetCache
 from Utils.FFmpeg import ConvertTsToMp4
@@ -124,7 +125,7 @@ print("\n", "=" * 50)
 async def StartDownload():
     resetCache()
     try:
-        os.mkdir(f"./Downloads/{anime.get('name')}")
+        os.mkdir(convertFilePath(f"./Downloads/{anime.get('name')}"))
     except:
         pass
     session = aiohttp.ClientSession()
@@ -141,7 +142,9 @@ async def StartDownload():
             file = data["stream"]["sources"][0]["file"]
             await startM3U8Download(session, file, quality, workers)
             print(f">> Episode {ep} - {quality}p Downloaded")
-            filepath = f"./Downloads/{anime.get('name')}/{anime.get('name')} - Episode {ep} - {quality}p.mp4"
+            filepath = convertFilePath(
+                f"./Downloads/{anime.get('name')}/{anime.get('name')} - Episode {ep} - {quality}p.mp4"
+            )
             ConvertTsToMp4(filepath)
             resetCache()
         except Exception as e:
