@@ -1,26 +1,9 @@
-import os
-import asyncio
-import aiofiles
-import aiohttp
-from TechZApi import TechZApi
-import sys
+import asyncio, aiohttp, os
+from Utils.TechZApi import TechZApi
+from Utils.Downloader import startM3U8Download, resetCache
+from Utils.FFmpeg import ConvertTsToMp4
 
-
-# Getting TechZApi Key
-
-try:
-    API_KEY = open("key.txt", "r").read().strip()
-except:
-    API_KEY = None
-
-if not API_KEY or API_KEY == "":
-    print("Your TechZ Api Key (Get From https://telegram.me/TechZApiBot) ")
-    API_KEY = input("Enter Your TechZ Api Key: ")
-    with open("key.txt", "w") as f:
-        f.write(API_KEY)
-
-TechZApi = TechZApi(API_KEY)
-
+TechZApi = TechZApi()
 
 # Getting Anime Name
 
@@ -33,7 +16,7 @@ while True:
         continue
 
     try:
-        search = TechZApi.gogo_search(search)
+        search = TechZApi.gogo_search(search.lower())
     except Exception as e:
         print(">> Error: ", e)
         continue
@@ -47,11 +30,16 @@ while True:
 
 # Select Anime
 
-print("\n", "=" * 50, "\n\n>> Select Anime", sep="")
+print("\n", "=" * 50)
+print("\n>> Select Anime\n")
 pos = 1
+print("-" * 53)
+print("|" + "Index".center(10) + "|" + "Anime Name".center(40) + "|")
+print("-" * 53)
 for i in search:
-    print(f"{pos}. {i['title']}")
+    print("|" + str(pos).center(10) + "|" + str(i.get("title")).center(40) + "|")
     pos += 1
+print("-" * 53)
 
 while True:
     try:
@@ -69,18 +57,21 @@ while True:
 # Episodes
 
 title = anime.get("title")
-episodes = TechZApi.gogo_anime(anime.get("id")).get("episodes")
-print("\n", "=" * 50, "\n\n>> Select Episode", sep="")
+anime = TechZApi.gogo_anime(anime.get("id"))["results"]
+episodes = []
+for i in range(1, int(anime.get("episodes"))):
+    episodes.append(i)
 
-for i in episodes:
-    x, y = i.split("-episode-")
-    print(f"Episode {y}")
+print("\n", "=" * 50)
+print("\n>> Select Episode\n", sep="")
+print(f"Episode 1 - {len(episodes)} Are Available")
 
 while True:
     try:
-        ep_range = input(
-            "\nEnter The Episodes You Want To Download (Ex 2, 3-8) || Enter * To Download All Episodes : "
+        print(
+            "\nEnter The Episodes You Want To Download (Ex 2, 3-8) || Enter * To Download All Episodes"
         )
+        ep_range = input("\nEpisodes To Download : ")
         if ep_range == "*":
             break
         if "-" not in ep_range:
@@ -97,34 +88,6 @@ while True:
         print(">> Invalid Choice")
         continue
 
-
-# Audio
-
-print("\n", "=" * 50, "\n\n>> Select Audio", sep="")
-
-print("1. SUB")
-print("2. DUB")
-
-while True:
-    try:
-        select = int(input("Enter Your Choice (1,2): "))
-        if select == 1:
-            aud = "SUB"
-            break
-        elif select == 2:
-            aud = "DUB"
-            break
-        else:
-            print(">> Invalid Choice")
-            continue
-    except KeyboardInterrupt:
-        print(">> Exiting...")
-        exit()
-    except:
-        print(">> Invalid Choice")
-        continue
-
-
 # Quality
 
 print("\n", "=" * 50, "\n\n>> Select Quality", sep="")
@@ -139,13 +102,13 @@ while True:
         select = int(input("Enter Your Choice (1,2,3...): "))
 
         if select == 1:
-            quality = "360p"
+            quality = "360"
         elif select == 2:
-            quality = "480p"
+            quality = "480"
         elif select == 3:
-            quality = "720p"
+            quality = "720"
         elif select == 4:
-            quality = "1080p"
+            quality = "1080"
         break
     except KeyboardInterrupt:
         print(">> Exiting...")
@@ -154,120 +117,38 @@ while True:
         print(">> Invalid Choice")
         continue
 
-
-# Getting Links
-
-print("\n", "=" * 50, "\n\n>> Getting Download Urls...\n", sep="")
+print("\n", "=" * 50)
 
 
-if not os.path.exists("./Downloads/"):
-    os.mkdir("./Downloads")
-if not os.path.exists("./Downloads/" + title):
-    os.mkdir("./Downloads/" + title)
-
-download_links = []
-
-for i in episodes:
+# Download
+async def StartDownload():
+    resetCache()
     try:
-        url = TechZApi.gogo_episode(i).get("DL").get(aud).get(quality)
-        path = (
-            "./Downloads/"
-            + title
-            + "/"
-            + i.replace("-", " ").title()
-            + " - "
-            + quality
-            + "p.mp4"
-        )
-        download_links.append((path, url))
-        print(">> Got Download Link Of: ", i)
-    except Exception as e:
-        print(">> Failed To Get Download Link Of: ", i)
-        continue
+        os.mkdir(f"./Downloads/{anime.get('name')}")
+    except:
+        pass
+    session = aiohttp.ClientSession()
+    print(
+        "\nEnter Number Of Workers To Parallel Download (Recommended: 4,8,16) - Depends On Your Internet Speed/PC Specs (CPU Cores)"
+    )
+    workers = int(input("\nNo. Of Workers: "))
+    print("\n>> Downloading Episodes")
 
-# Downloader
-
-print("\n", "=" * 50, "\n\n>> Batch Download Started...\n", sep="")
-
-status = {}
-
-
-async def download(name, url):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            if response.content_length:
-                total = response.content_length / 1024
-            else:
-                total = 1
-
-            done = 0
-            async with aiofiles.open(name, "wb") as f:
-                async for data in response.content.iter_chunked(1024):
-                    status[name] = round(done / total * 100, 2)
-                    done += 1
-                    await f.write(data)
+    for ep in episodes:
+        try:
+            print(f"\n\n>> Downloading Episode {ep} - {quality}p")
+            data = TechZApi.gogo_episode(anime.get("id"), ep)["results"]
+            file = data["stream"]["sources"][0]["file"]
+            await startM3U8Download(session, file, quality, workers)
+            print(f">> Episode {ep} - {quality}p Downloaded")
+            filepath = f"./Downloads/{anime.get('name')}/{anime.get('name')} - Episode {ep} - {quality}p.mp4"
+            ConvertTsToMp4(filepath)
+            resetCache()
+        except Exception as e:
+            print("Failed To Download Episode", ep)
+            print(">> Error: ", e)
+            continue
+    await session.close()
 
 
-def clear_line(n=1):
-    LINE_UP = "\033[1A"
-    LINE_CLEAR = "\x1b[2K"
-    for i in range(n):
-        print(LINE_UP, end=LINE_CLEAR)
-
-
-async def progress():
-    while True:
-
-        text = (
-            "=" * 50
-            + f"\n\n>> AniDL || Downloading {title} {aud} {quality}p : Episode {ep_range}\n\n"
-        )
-        n = 2
-        x = 0
-        is_all_completed = True
-
-        for k, v in sorted(status.items(), key=lambda x: x[0]):
-            file = k.split("/")[-1]
-            percent = f"{v} %" if v < 100 else "Completed"
-
-            if percent != "Completed":
-                is_all_completed = False
-
-            if x == 0:
-                text += "File Name".center(len(file)) + " : Progress\n\n"
-                n += 2
-                x = 1
-
-            text += f"{file} : {percent}\n"
-            n += 1
-
-        clear_line(n + 3)
-        print(text)
-
-        if is_all_completed and status != {}:
-            print(
-                "=" * 50
-                + f"\n\n>> AniDL || Downloaded Completed {title} {aud} {quality}p : Episode {ep_range}\n\n"
-            )
-            return
-        await asyncio.sleep(5)
-
-
-async def main():
-    global pos
-    tasks = [progress()]
-
-    for i in download_links:
-        task = asyncio.create_task(download(i[0], i[1]))
-        tasks.append(task)
-        pos += 1
-
-    await asyncio.gather(*tasks)
-
-
-loop = asyncio.get_event_loop()
-try:
-    loop.run_until_complete(main())
-    loop.run_until_complete(loop.shutdown_asyncgens())
-finally:
-    loop.close()
+asyncio.run(StartDownload())
