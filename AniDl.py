@@ -59,9 +59,7 @@ while True:
 
 title = anime.get("title")
 anime = TechZApi.gogo_anime(anime.get("id"))["results"]
-episodes = []
-for i in range(1, int(anime.get("episodes"))):
-    episodes.append(i)
+episodes = anime["episodes"]
 
 print("\n", "=" * 50)
 print("\n>> Select Episode\n", sep="")
@@ -136,9 +134,11 @@ async def StartDownload():
     print("\n>> Downloading Episodes")
 
     for ep in episodes:
+        episode_id = ep[1]
+        ep = ep[0]
         try:
             print(f"\n\n>> Downloading Episode {ep} - {quality}p")
-            data = TechZApi.gogo_episode(anime.get("id"), ep)["results"]
+            data = TechZApi.gogo_episode(episode_id)["results"]
             file = data["stream"]["sources"][0]["file"]
             await startM3U8Download(session, file, quality, workers)
             print(f">> Episode {ep} - {quality}p Downloaded")

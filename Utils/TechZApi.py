@@ -12,9 +12,9 @@ class Gogo:
     def gogo_anime(self, id):
         data = requests.get(f"{self.base}/anime/{id}").json()
         return data
-    
-    def gogo_episode(self, id, ep):
-        data = requests.get(f"{self.base}/episode/{id}-episode-{ep}").json()
+
+    def gogo_episode(self, id):
+        data = requests.get(f"{self.base}/episode/{id}").json()
         return data
 
 
