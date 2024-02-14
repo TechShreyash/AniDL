@@ -17,7 +17,8 @@ pip install -U -r requirements.txt
 ```
 
 -   Install [ffmpeg](https://ffmpeg.org/)
-    > For Windows Users, You must add ffmpeg to path
+
+    > For Windows Users, You must add ffmpeg to path. Download Link : https://drive.google.com/file/d/1jaE4SFombXVXvLsaRtU0siQFTF7F3hL0/view?usp=sharing
 
 ## How To Use
 
